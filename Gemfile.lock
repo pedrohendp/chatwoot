@@ -970,6 +970,7 @@ GEM
     working_hours (1.4.1)
       activesupport (>= 3.2)
       tzinfo
+    yard (0.9.37)
     zeitwerk (2.6.17)
 
 PLATFORMS
@@ -1124,6 +1125,7 @@ DEPENDENCIES
   webmock
   wisper (= 2.0.0)
   working_hours
+  yard
 
 RUBY VERSION
    ruby 3.4.4p34

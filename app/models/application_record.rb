@@ -1,15 +1,23 @@
+# ApplicationRecord serves as the base class for all ActiveRecord models in the application.
+# It includes shared functionality, such as event types, automatic content length validation
+# for text and string columns, and integration with the Liquid templating engine.
 class ApplicationRecord < ActiveRecord::Base
   include Events::Types
   self.abstract_class = true
 
   before_validation :validates_column_content_length
 
-  # the models that exposed in email templates through liquid
+  # Defines a list of models that can be exposed as "drops" in Liquid templates.
+  #
+  # @return [Array<String>] a list of model names
   def droppables
     %w[Account Channel Conversation Inbox User Message]
   end
 
-  # ModelDrop class should exist in app/drops
+  # Converts the model instance into a Liquid drop object, if it's droppable.
+  # This allows for safe exposure of model data in email templates.
+  #
+  # @return [Liquid::Drop, nil] the drop object or nil if the model is not droppable
   def to_drop
     return unless droppables.include?(self.class.name)
 

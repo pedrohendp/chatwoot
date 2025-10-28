@@ -15,6 +15,9 @@
 #  index_access_tokens_on_token                    (token) UNIQUE
 #
 
+# AccessToken represents a secure token that can be used to authenticate
+# a user or an application. It has a polymorphic owner, meaning it can
+# belong to different types of models (e.g., User, PlatformApp).
 class AccessToken < ApplicationRecord
   has_secure_token :token
   belongs_to :owner, polymorphic: true

@@ -1,3 +1,7 @@
+# DashboardController serves the main dashboard application.
+# It is responsible for rendering the Vue.js application and setting up
+# the necessary global configurations and scripts. It also handles redirection
+# for installation onboarding and custom domain mapping to help centers.
 class DashboardController < ActionController::Base
   include SwitchLocale
 

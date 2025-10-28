@@ -31,6 +31,9 @@
 #  index_articles_on_status                 (status)
 #  index_articles_on_views                  (views)
 #
+# Represents a help center article within a portal.
+# Articles have content, a category, an author, and can be searched.
+# They also track views and can be organized by position.
 class Article < ApplicationRecord
   include PgSearch::Model
   include LlmFormattable
@@ -96,6 +99,15 @@ class Article < ApplicationRecord
     ranked_by: ':tsearch'
   )
 
+  # Searches for articles based on the given parameters.
+  #
+  # @param params [Hash] the search parameters
+  # @option params [String] :category_slug the slug of the category
+  # @option params [String] :locale the locale of the article
+  # @option params [Integer] :author_id the ID of the author
+  # @option params [String] :status the status of the article
+  # @option params [String] :query the search query
+  # @return [ActiveRecord::Relation<Article>] a collection of matching articles
   def self.search(params)
     records = left_outer_joins(
       :category
@@ -107,6 +119,9 @@ class Article < ApplicationRecord
     records
   end
 
+  # Associates the article with a root article to create a hierarchy.
+  #
+  # @param associated_article_id [Integer, nil] the ID of the article to associate with
   def associate_root_article(associated_article_id)
     article = portal.articles.find(associated_article_id) if associated_article_id.present?
 
@@ -117,21 +132,29 @@ class Article < ApplicationRecord
     update(associated_article_id: root_article_id) if root_article_id.present?
   end
 
-  # Make sure we always associate the parent's associated id to avoid the deeper associations od articles.
+  # Finds the root article ID for a given article to prevent deep nesting.
+  #
+  # @param article [Article] the article to find the root for
+  # @return [Integer] the ID of the root article
   def self.find_root_article_id(article)
     article.associated_article_id || article.id
   end
 
+  # Updates the article's status to 'draft'.
   def draft!
     update(status: :draft)
   end
 
+  # Increments the view count of the article by one.
   def increment_view_count
     # rubocop:disable Rails/SkipsModelValidations
     update_column(:views, views? ? views + 1 : 1)
     # rubocop:enable Rails/SkipsModelValidations
   end
 
+  # Updates the positions of multiple articles at once.
+  #
+  # @param positions_hash [Hash] a hash where keys are article IDs and values are new positions
   def self.update_positions(positions_hash)
     positions_hash.each do |article_id, new_position|
       # Find the article by its ID and update its position
