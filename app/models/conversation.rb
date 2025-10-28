@@ -49,6 +49,10 @@
 #  index_conversations_on_waiting_since               (waiting_since)
 #
 
+# Represents a conversation between a contact and an agent.
+# A conversation is initiated by a contact through an inbox and is associated
+# with an account. It tracks the status, assignee, and various timestamps
+# related to the conversation.
 class Conversation < ApplicationRecord
   include Labelable
   include LlmFormattable
@@ -120,28 +124,38 @@ class Conversation < ApplicationRecord
 
   delegate :auto_resolve_after, to: :account
 
+  # Checks if a reply can be sent to the conversation.
+  # This is determined by the message window service.
+  #
+  # @return [Boolean] true if a reply can be sent, false otherwise
   def can_reply?
     Conversations::MessageWindowService.new(self).can_reply?
   end
 
+  # Retrieves the language of the conversation.
+  #
+  # @return [String, nil] the language code (e.g., 'en') or nil if not set
   def language
     additional_attributes&.dig('conversation_language')
   end
 
-  # Be aware: The precision of created_at and last_activity_at may differ from Ruby's Time precision.
-  # Our DB column (see schema) stores timestamps with second-level precision (no microseconds), so
-  # if you assign a Ruby Time with microseconds, the DB will truncate it. This may cause subtle differences
-  # if you compare or copy these values in Ruby, also in our specs
-  # So in specs rely on to be_with(1.second) instead of to eq()
-  # TODO: Migrate to use a timestamp with microsecond precision
+  # Returns the timestamp of the last activity in the conversation.
+  # Falls back to the creation timestamp if no activity is recorded.
+  #
+  # @return [ActiveSupport::TimeWithZone] the time of the last activity
   def last_activity_at
     self[:last_activity_at] || created_at
   end
 
+  # Retrieves the last incoming message in the conversation.
+  #
+  # @return [Message, nil] the last incoming message or nil if none exists
   def last_incoming_message
     messages&.incoming&.last
   end
 
+  # Toggles the status of the conversation between open and resolved.
+  # If the conversation is pending or snoozed, it will be opened.
   def toggle_status
     # FIXME: implement state machine with aasm
     self.status = open? ? :resolved : :open
@@ -149,28 +163,44 @@ class Conversation < ApplicationRecord
     save
   end
 
+  # Sets or unsets the priority of the conversation.
+  #
+  # @param priority [String, nil] the priority to set (e.g., 'high') or nil to remove
   def toggle_priority(priority = nil)
     self.priority = priority.presence
     save
   end
 
+  # Performs a bot handoff by opening the conversation and dispatching an event.
   def bot_handoff!
     open!
     dispatcher_dispatch(CONVERSATION_BOT_HANDOFF)
   end
 
+  # Retrieves unread messages for the agent.
+  #
+  # @return [ActiveRecord::Relation<Message>] a collection of unread messages
   def unread_messages
     agent_last_seen_at.present? ? messages.created_since(agent_last_seen_at) : messages
   end
 
+  # Retrieves the last 10 unread incoming messages.
+  #
+  # @return [Array<Message>] an array of unread incoming messages
   def unread_incoming_messages
     unread_messages.where(account_id: account_id).incoming.last(10)
   end
 
+  # Returns the cached label list as an array.
+  #
+  # @return [Array<String>] an array of label names
   def cached_label_list_array
     (cached_label_list || '').split(',').map(&:strip)
   end
 
+  # Checks if a notification should be sent for an assignee change.
+  #
+  # @return [Boolean] true if a notification is required, false otherwise
   def notifiable_assignee_change?
     return false unless saved_change_to_assignee_id?
     return false if assignee_id.blank?
@@ -179,18 +209,30 @@ class Conversation < ApplicationRecord
     true
   end
 
+  # Checks if the conversation is a tweet.
+  #
+  # @return [Boolean] true if the conversation is a tweet, false otherwise
   def tweet?
     inbox.inbox_type == 'Twitter' && additional_attributes['type'] == 'tweet'
   end
 
+  # Retrieves the last 5 chat messages in the conversation.
+  #
+  # @return [ActiveRecord::Relation<Message>] a collection of recent messages
   def recent_messages
     messages.chat.last(5)
   end
 
+  # Generates the link for the CSAT survey.
+  #
+  # @return [String] the URL for the CSAT survey
   def csat_survey_link
     "#{ENV.fetch('FRONTEND_URL', nil)}/survey/responses/#{uuid}"
   end
 
+  # Dispatches an event indicating that the conversation has been updated.
+  #
+  # @param previous_changes [Hash, nil] the changes that occurred
   def dispatch_conversation_updated_event(previous_changes = nil)
     dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
   end

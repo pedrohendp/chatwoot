@@ -24,6 +24,10 @@
 #  uniq_user_id_per_account_id                      (account_id,user_id) UNIQUE
 #
 
+# AccountUser represents the association between a User and an Account.
+# It defines the user's role (e.g., agent, administrator) and their availability
+# status within that specific account. It also handles callbacks for user
+# management within the account, such as notifications and cleanup.
 class AccountUser < ApplicationRecord
   include AvailabilityStatusable
 
@@ -42,6 +46,8 @@ class AccountUser < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :account_id }
 
+  # Creates a default notification setting for the user within the account.
+  # This is a callback executed after the record is created.
   def create_notification_setting
     setting = user.notification_settings.new(account_id: account.id)
     setting.selected_email_flags = [:email_conversation_assignment]
@@ -49,14 +55,22 @@ class AccountUser < ApplicationRecord
     setting.save!
   end
 
+  # Schedules a job to remove the user's data from the account.
+  # This is a callback executed after the record is destroyed.
   def remove_user_from_account
     ::Agents::DestroyJob.perform_later(account, user)
   end
 
+  # Returns the permissions of the user within the account.
+  #
+  # @return [Array<String>] an array of permission names
   def permissions
     administrator? ? ['administrator'] : ['agent']
   end
 
+  # Prepares a hash of data for push events.
+  #
+  # @return [Hash] the data for push events
   def push_event_data
     {
       id: id,

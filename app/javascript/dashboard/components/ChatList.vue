@@ -70,13 +70,47 @@ import { ASSIGNEE_TYPE_TAB_PERMISSIONS } from 'dashboard/constants/permissions.j
 
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 
+/**
+ * @vue/component
+ * ChatList is a major component responsible for displaying the list of conversations.
+ * It handles fetching, filtering (basic, advanced, and custom views), sorting,
+ * and bulk actions for conversations. It uses a virtual scroller for performance.
+ */
 const props = defineProps({
+  /**
+   * The ID of the inbox to filter conversations by.
+   * @type {String|Number}
+   */
   conversationInbox: { type: [String, Number], default: 0 },
+  /**
+   * The ID of the team to filter conversations by.
+   * @type {String|Number}
+   */
   teamId: { type: [String, Number], default: 0 },
+  /**
+   * The label to filter conversations by.
+   * @type {String}
+   */
   label: { type: String, default: '' },
+  /**
+   * The type of conversation to display (e.g., 'mention', 'unattended').
+   * @type {String}
+   */
   conversationType: { type: String, default: '' },
+  /**
+   * The ID of the custom view (folder) to apply.
+   * @type {String|Number}
+   */
   foldersId: { type: [String, Number], default: 0 },
+  /**
+   * Whether to show the conversation list.
+   * @type {Boolean}
+   */
   showConversationList: { default: true, type: Boolean },
+  /**
+   * Whether the component is being displayed in an expanded layout.
+   * @type {Boolean}
+   */
   isOnExpandedLayout: { default: false, type: Boolean },
 });
 

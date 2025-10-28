@@ -17,6 +17,9 @@
 #  index_agent_bots_on_account_id  (account_id)
 #
 
+# AgentBot represents an automated agent (bot) in the system.
+# Bots can be associated with inboxes and can send messages.
+# Currently, only webhook bots are supported, which send events to an outgoing URL.
 class AgentBot < ApplicationRecord
   include AccessTokenable
   include Avatarable
@@ -29,10 +32,17 @@ class AgentBot < ApplicationRecord
 
   validates :outgoing_url, length: { maximum: Limits::URL_LENGTH_LIMIT }
 
+  # Returns the display name of the bot.
+  #
+  # @return [String] the name of the bot
   def available_name
     name
   end
 
+  # Prepares a hash of data for push events.
+  #
+  # @param inbox [Inbox, nil] the inbox to get the avatar from if the bot doesn't have one
+  # @return [Hash] the data for push events
   def push_event_data(inbox = nil)
     {
       id: id,
@@ -42,6 +52,9 @@ class AgentBot < ApplicationRecord
     }
   end
 
+  # Prepares a hash of data for webhooks.
+  #
+  # @return [Hash] the data for webhooks
   def webhook_data
     {
       id: id,
@@ -50,6 +63,9 @@ class AgentBot < ApplicationRecord
     }
   end
 
+  # Checks if the bot is a system-level bot.
+  #
+  # @return [Boolean] true if the bot is not associated with an account, false otherwise
   def system_bot?
     account.nil?
   end

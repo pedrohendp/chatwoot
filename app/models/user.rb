@@ -45,6 +45,10 @@
 #  index_users_on_uid_and_provider        (uid,provider) UNIQUE
 #
 
+# The User model represents a user in the system.
+# Users can be agents, administrators, or super admins.
+# It uses Devise for authentication and handles user-related data like accounts,
+# conversations, and notification settings.
 class User < ApplicationRecord
   include AccessTokenable
   include Avatarable
@@ -122,22 +126,42 @@ class User < ApplicationRecord
     self.email = email.try(:downcase)
   end
 
+  # Sends Devise notifications with the current account context.
+  #
+  # @param notification [Symbol] the notification type
+  # @param args [Array] additional arguments
+  # @return [ActiveJob::Base] the mailer job
   def send_devise_notification(notification, *)
     devise_mailer.with(account: Current.account).send(notification, self, *).deliver_later
   end
 
+  # Sets the user's UID to their email.
+  # This is a callback executed before validation on create.
   def set_password_and_uid
     self.uid = email
   end
 
+  # Retrieves the inboxes assigned to the user.
+  # Administrators get all inboxes in the current account, while agents get
+  # only the inboxes they are a member of.
+  #
+  # @return [ActiveRecord::Relation<Inbox>] a collection of inboxes
   def assigned_inboxes
     administrator? ? Current.account.inboxes : inboxes.where(account_id: Current.account.id)
   end
 
+  # Extends the default serializable hash to include confirmation status.
+  #
+  # @param options [Hash, nil] serialization options
+  # @return [Hash] the user's attributes as a hash
   def serializable_hash(options = nil)
     super(options).merge(confirmed: confirmed?)
   end
 
+  # Prepares a hash of user data for push events.
+  # This data is typically broadcasted to connected clients.
+  #
+  # @return [Hash] the user data for push events
   def push_event_data
     {
       id: id,
@@ -150,6 +174,9 @@ class User < ApplicationRecord
     }
   end
 
+  # Prepares a hash of user data for webhooks.
+  #
+  # @return [Hash] the user data for webhooks
   def webhook_data
     {
       id: id,
@@ -159,18 +186,25 @@ class User < ApplicationRecord
     }
   end
 
-  # https://github.com/lynndylanhurley/devise_token_auth/blob/6d7780ee0b9750687e7e2871b9a1c6368f2085a9/app/models/devise_token_auth/concerns/user.rb#L45
-  # Since this method is overriden in devise_token_auth it breaks the email reconfirmation flow.
+  # Overrides the Devise method to correctly handle email reconfirmation flow.
+  # See: https://github.com/lynndylanhurley/devise_token_auth/blob/6d7780ee0b9750687e7e2871b9a1c6368f2085a9/app/models/devise_token_auth/concerns/user.rb#L45
+  #
+  # @return [Boolean] true if the email has changed, false otherwise
   def will_save_change_to_email?
     mutations_from_database.changed?('email')
   end
 
+  # Finds a user by their email address.
+  #
+  # @param email [String, nil] the email to search for
+  # @return [User, nil] the user if found, otherwise nil
   def self.from_email(email)
     find_by(email: email&.downcase)
   end
 
-  # 2FA/MFA Methods
-  # Delegated to Mfa::ManagementService for better separation of concerns
+  # Provides access to the MFA management service for this user.
+  #
+  # @return [Mfa::ManagementService] the MFA service instance
   def mfa_service
     @mfa_service ||= Mfa::ManagementService.new(user: self)
   end
@@ -182,10 +216,16 @@ class User < ApplicationRecord
   delegate :generate_backup_codes!, to: :mfa_service
   delegate :validate_backup_code!, to: :mfa_service
 
+  # Checks if multi-factor authentication is enabled for the user.
+  #
+  # @return [Boolean] true if MFA is enabled, false otherwise
   def mfa_enabled?
     otp_required_for_login?
   end
 
+  # Checks if the multi-factor authentication feature is available in the instance.
+  #
+  # @return [Boolean] true if the MFA feature is available, false otherwise
   def mfa_feature_available?
     Chatwoot.mfa_enabled?
   end

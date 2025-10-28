@@ -1,11 +1,16 @@
+# This service is responsible for the deletion of an account.
+# It handles the soft deletion of users who are only part of the deleted account,
+# sends a compliance notification, and schedules a job for the actual deletion of the account data.
 class AccountDeletionService
   attr_reader :account, :soft_deleted_users
 
+  # @param account [Account] the account to be deleted
   def initialize(account:)
     @account = account
     @soft_deleted_users = []
   end
 
+  # Executes the account deletion process.
   def perform
     Rails.logger.info("Deleting account #{account.id} - #{account.name} that was marked for deletion")
 

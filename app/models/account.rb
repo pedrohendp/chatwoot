@@ -22,6 +22,9 @@
 #  index_accounts_on_status  (status)
 #
 
+# An Account represents a distinct tenant in the Chatwoot system.
+# Each account has its own users, inboxes, conversations, and settings.
+# It serves as the top-level container for all the data related to a single customer.
 class Account < ApplicationRecord
   # used for single column multi flags
   include FlagShihTzu
@@ -109,14 +112,23 @@ class Account < ApplicationRecord
   after_create_commit :notify_creation
   after_destroy :remove_account_sequences
 
+  # Retrieves all users with the agent role in the account.
+  #
+  # @return [ActiveRecord::Relation<User>] a collection of agent users
   def agents
     users.where(account_users: { role: :agent })
   end
 
+  # Retrieves all users with the administrator role in the account.
+  #
+  # @return [ActiveRecord::Relation<User>] a collection of administrator users
   def administrators
     users.where(account_users: { role: :administrator })
   end
 
+  # Retrieves all tags used in conversations within the account.
+  #
+  # @return [Array<String>] an array of tag names
   def all_conversation_tags
     # returns array of tags
     conversation_ids = conversations.pluck(:id)
@@ -127,6 +139,9 @@ class Account < ApplicationRecord
                              .map { |tagging| tagging.tag.name }
   end
 
+  # Prepares a hash of account data for webhooks.
+  #
+  # @return [Hash] the account data for webhooks
   def webhook_data
     {
       id: id,
@@ -134,15 +149,26 @@ class Account < ApplicationRecord
     }
   end
 
+  # Determines the inbound email domain for the account.
+  # It falls back to global settings if no domain is set for the account.
+  #
+  # @return [String, false] the inbound email domain or false if not configured
   def inbound_email_domain
     domain.presence || GlobalConfig.get('MAILER_INBOUND_EMAIL_DOMAIN')['MAILER_INBOUND_EMAIL_DOMAIN'] || ENV.fetch('MAILER_INBOUND_EMAIL_DOMAIN',
                                                                                                                    false)
   end
 
+  # Determines the support email for the account.
+  # It falls back to global settings if no support email is set for the account.
+  #
+  # @return [String] the support email address
   def support_email
     super.presence || ENV.fetch('MAILER_SENDER_EMAIL') { GlobalConfig.get('MAILER_SUPPORT_EMAIL')['MAILER_SUPPORT_EMAIL'] }
   end
 
+  # Provides the usage limits for the account.
+  #
+  # @return [Hash] a hash of usage limits (e.g., agents, inboxes)
   def usage_limits
     {
       agents: ChatwootApp.max_limit.to_i,
@@ -150,6 +176,9 @@ class Account < ApplicationRecord
     }
   end
 
+  # Returns the English name of the account's locale.
+  #
+  # @return [String] the English name of the locale
   def locale_english_name
     # the locale can also be something like pt_BR, en_US, fr_FR, etc.
     # the format is `<locale_code>_<country_code>`

@@ -85,6 +85,89 @@ Publish help articles, FAQs, and guides through the built-in Help Center Portal.
 - CSAT Reports to measure customer satisfaction.
 - Downloadable Reports for offline analysis and reporting.
 
+## Project Architecture
+
+Chatwoot is a full-stack application built with a Ruby on Rails backend and a Vue.js frontend.
+
+*   **Backend**: The backend is a robust Ruby on Rails API that handles all the business logic, data persistence, and communication with external services. It uses PostgreSQL for the primary database and Redis for caching and background jobs.
+
+*   **Frontend**: The frontend is a modern, single-page application (SPA) built with Vue.js. It provides a rich, interactive user interface for agents and administrators to manage conversations and settings.
+
+*   **Real-time Communication**: Action Cable, the real-time communication framework for Rails, is used to power features like live chat and agent presence.
+
+*   **Background Jobs**: Sidekiq is used for processing background jobs, such as sending emails, webhooks, and processing reports.
+
+## Getting Started
+
+Follow these instructions to set up a local development environment.
+
+### Prerequisites
+
+*   Ruby (see `.ruby-version` for the exact version)
+*   Node.js and pnpm
+*   PostgreSQL
+*   Redis
+
+### Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/chatwoot/chatwoot.git
+    cd chatwoot
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    bundle install
+    pnpm install
+    ```
+
+3.  **Set up the database:**
+
+    ```bash
+    rails db:create
+    rails db:migrate
+    rails db:seed
+    ```
+
+4.  **Run the application:**
+
+    ```bash
+    foreman start -f Procfile.dev
+    ```
+
+    The application will be available at `http://localhost:3000`.
+
+## Running Tests
+
+To run the test suites, use the following commands:
+
+*   **RSpec (Backend)**:
+
+    ```bash
+    bundle exec rspec
+    ```
+
+*   **Vitest (Frontend)**:
+
+    ```bash
+    pnpm test
+    ```
+
+## Code Style and Conventions
+
+This project follows the standard Ruby on Rails and Vue.js conventions. We use the following tools to enforce code style:
+
+*   **RuboCop**: For Ruby code style. See `.rubocop.yml` for the configuration.
+*   **ESLint**: For JavaScript and Vue code style. See `.eslintrc.js` for the configuration.
+
+Please ensure your contributions adhere to these styles.
+
+## API Documentation
+
+The API is documented using the OpenAPI (Swagger) specification. You can view the documentation by running the application and visiting `http://localhost:3000/swagger`.
 
 ## Documentation
 

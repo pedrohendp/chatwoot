@@ -11,6 +11,9 @@
 #  inbox_id     :integer
 #
 
+# AgentBotInbox represents the association between an AgentBot and an Inbox.
+# It defines which bots are active in which inboxes and ensures that the
+# association belongs to the correct account.
 class AgentBotInbox < ApplicationRecord
   validates :inbox_id, presence: true
   validates :agent_bot_id, presence: true

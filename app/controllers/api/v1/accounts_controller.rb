@@ -1,3 +1,6 @@
+# This controller handles the API endpoints for managing accounts.
+# It provides actions for creating, showing, and updating accounts, as well as
+# handling account-specific settings and cache keys.
 class Api::V1::AccountsController < Api::BaseController
   include AuthHelper
   include CacheKeysHelper
@@ -16,11 +19,15 @@ class Api::V1::AccountsController < Api::BaseController
               CustomExceptions::Account::UserErrors,
               with: :render_error_response
 
+  # GET /api/v1/accounts/{id}
+  # Renders the details of an account.
   def show
     @latest_chatwoot_version = ::Redis::Alfred.get(::Redis::Alfred::LATEST_CHATWOOT_VERSION)
     render 'api/v1/accounts/show', format: :json
   end
 
+  # POST /api/v1/accounts
+  # Creates a new account and the first user.
   def create
     @user, @account = AccountBuilder.new(
       account_name: account_params[:account_name],
@@ -38,11 +45,16 @@ class Api::V1::AccountsController < Api::BaseController
     end
   end
 
+  # GET /api/v1/accounts/{id}/cache_keys
+  # Renders the cache keys for the account.
   def cache_keys
     expires_in 10.seconds, public: false, stale_while_revalidate: 5.minutes
     render json: { cache_keys: cache_keys_for_account }, status: :ok
   end
 
+  # PUT /api/v1/accounts/{id}
+  # PATCH /api/v1/accounts/{id}
+  # Updates an account's attributes.
   def update
     @account.assign_attributes(account_params.slice(:name, :locale, :domain, :support_email))
     @account.custom_attributes.merge!(custom_attributes_params)
@@ -51,6 +63,8 @@ class Api::V1::AccountsController < Api::BaseController
     @account.save!
   end
 
+  # POST /api/v1/accounts/{id}/update_active_at
+  # Updates the `active_at` timestamp for the current user in the account.
   def update_active_at
     @current_account_user.active_at = Time.now.utc
     @current_account_user.save!
